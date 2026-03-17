@@ -477,12 +477,12 @@ function processAndRender(trades) {
         openCard.style.display = 'block';
         openTbody.innerHTML = openTrades.map(t => `
             <tr>
-                <td>${t.date.split(' ')[1]}</td>
-                <td>${t.market.substring(0, 30)}...</td>
-                <td>${t.coin}</td>
-                <td class="${t.direction === 'YES' ? 'pos' : 'neg'}">${t.direction}</td>
-                <td>${t.entry_price.toFixed(2)}</td>
-                <td>${t.score}</td>
+                <td>${t.date ? t.date.split(' ')[1] : '—'}</td>
+                <td>${(t.market || 'Unknown').substring(0, 30)}...</td>
+                <td>${t.coin || '—'}</td>
+                <td class="${t.direction === 'YES' ? 'pos' : 'neg'}">${t.direction || '—'}</td>
+                <td>${t.entry_price ? t.entry_price.toFixed(2) : '—'}</td>
+                <td>${t.score || 0}</td>
             </tr>
         `).join('');
     } else {
@@ -491,17 +491,28 @@ function processAndRender(trades) {
 
     // History
     const historyBody = document.getElementById('history-body');
-    historyBody.innerHTML = trades.slice().reverse().map(t => `
-        <tr>
-            <td>${t.date}</td>
-            <td>${t.market.substring(0, 40)}...</td>
-            <td class="${t.direction === 'YES' ? 'pos' : 'neg'}">${t.direction}</td>
-            <td>${t.entry_price.toFixed(2)}</td>
-            <td>${t.exit_price ? t.exit_price.toFixed(2) : '—'}</td>
-            <td class="${(t.profit_loss || 0) >= 0 ? 'pos' : 'neg'}">$${(t.profit_loss || 0).toFixed(2)}</td>
-            <td><span class="badge badge-${t.status === 'open' ? 'open' : (t.profit_loss || 0) > 0 ? 'win' : 'loss'}">${t.status}</span></td>
-        </tr>
-    `).join('');
+    historyBody.innerHTML = trades.slice().reverse().map(t => {
+        // Safe check for properties to avoid crashes on Heartbeats
+        const marketName = (t.market || 'Unknown');
+        const direction = (t.direction || '—');
+        const entryPrice = t.entry_price ? t.entry_price.toFixed(2) : '—';
+        const exitPrice = t.exit_price ? t.exit_price.toFixed(2) : '—';
+        const pnl = (t.profit_loss || 0);
+        const status = t.status || 'unknown';
+        const badgeClass = status === 'open' ? 'open' : (pnl > 0 ? 'win' : 'loss');
+
+        return `
+            <tr>
+                <td style="white-space:nowrap">${t.date || '—'}</td>
+                <td title="${marketName}">${marketName.substring(0, 40)}${marketName.length > 40 ? '...' : ''}</td>
+                <td class="${direction === 'YES' ? 'pos' : (direction === 'NO' ? 'neg' : '')}">${direction}</td>
+                <td>${entryPrice}</td>
+                <td>${exitPrice}</td>
+                <td class="${pnl >= 0 ? 'pos' : 'neg'}">${pnl !== 0 ? '$' + pnl.toFixed(2) : '—'}</td>
+                <td><span class="badge badge-${badgeClass}">${status}</span></td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function updatePnlChart(labels, data) {
